@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="CreditWise loan eligibility prediction demo">
+  <title>CreditWise | Loan Eligibility</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#home"><span class="brand-mark">C</span> CreditWise</a>
+    <nav>
+      <a href="#home">Home</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#apply" class="nav-cta">Check eligibility</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <div class="hero-copy">
+        <p class="eyebrow">SMARTER LOAN DECISIONS</p>
+        <h1>Know where you<br><span>stand financially.</span></h1>
+        <p class="hero-text">Enter your application details to see an ML-based loan eligibility estimate. It takes only a few minutes.</p>
+        <a class="primary-button" href="#apply">Check my eligibility <span>→</span></a>
+        <p class="disclaimer">Demo tool for educational purposes. This is not a lending decision.</p>
+      </div>
+
+      <div class="hero-card">
+        <div class="card-top"><span class="small-dot"></span> CREDITWISE INSIGHT <span class="card-icon">↗</span></div>
+        <div class="score-circle"><div><strong>ML</strong><small>POWERED</small></div></div>
+        <h2>A clearer view of your application</h2>
+        <p>Your details are evaluated by the trained machine learning model.</p>
+        <div class="mini-row"><span>Simple application</span><b>01</b></div>
+        <div class="mini-row"><span>Model assessment</span><b>02</b></div>
+        <div class="mini-row"><span>Eligibility estimate</span><b>03</b></div>
+      </div>
+    </section>
+
+    <section class="how" id="how-it-works">
+      <p class="eyebrow">THREE SIMPLE STEPS</p>
+      <h2>How CreditWise works</h2>
+      <div class="steps">
+        <article><span>01</span><h3>Share your details</h3><p>Complete the application form with accurate information.</p></article>
+        <article><span>02</span><h3>Model evaluates</h3><p>Your information is passed to the trained ML pipeline.</p></article>
+        <article><span>03</span><h3>View your result</h3><p>See the model's eligibility prediction below the form.</p></article>
+      </div>
+    </section>
+
+    <section class="apply-section" id="apply">
+      <div class="section-heading">
+        <p class="eyebrow">LOAN ELIGIBILITY CHECK</p>
+        <h2>Tell us about your application</h2>
+        <p>Complete the fields using the same units and categories as the CreditWise dataset.</p>
+      </div>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for message in messages %}
+            <div class="flash" role="alert">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form class="loan-form" method="POST" action="{{ url_for('predict') }}">
+        <div class="form-grid">
+          <label>Applicant income <span>Income in the same currency/unit as the dataset</span>
+            <input type="number" name="Applicant_Income" min="0" step="any" placeholder="e.g. 15000" value="{{ form_data.get('Applicant_Income', '') if form_data else '' }}" required>
+          </label>
+
+          <label>Co-applicant income <span>Enter 0 if there is no co-applicant</span>
+            <input type="number" name="Coapplicant_Income" min="0" step="any" placeholder="e.g. 5000" value="{{ form_data.get('Coapplicant_Income', '') if form_data else '' }}" required>
+          </label>
+
+          <label>Age <span>Applicant age in years</span>
+            <input type="number" name="Age" min="18" max="100" step="1" placeholder="e.g. 32" value="{{ form_data.get('Age', '') if form_data else '' }}" required>
+          </label>
+
+          <label>Dependents <span>Number of dependents</span>
+            <input type="number" name="Dependents" min="0" max="20" step="1" placeholder="e.g. 2" value="{{ form_data.get('Dependents', '') if form_data else '' }}" required>
+          </label>
+
+          <label>Credit score <span>Credit score used in your dataset</span>
+            <input type="number" name="Credit_Score" min="300" max="900" step="1" placeholder="e.g. 700" value="{{ form_data.get('Credit_Score', '') if form_data else '' }}" required>
+          </label>
+
+          <label>Existing loans <span>Number of current loans</span>
+            <input type="number" name="Existing_Loans" min="0" max="50" step="1" placeholder="e.g. 1" value="{{ form_data.get('Existing_Loans', '') if form_data else '' }}" required>
+          </label>
+
+          <label>Debt-to-income ratio <span>Use a decimal from 0 to 1, e.g. 0.35</span>
+            <input type="number" name="DTI_Ratio" min="0" max="1" step="0.01" placeholder="e.g. 0.35" value="{{ form_data.get('DTI_Ratio', '') if form_data else '' }}" required>
+          </label>
+
+          <label>Savings <span>Savings amount in dataset units</span>
+            <input type="number" name="Savings" min="0" step="any" placeholder="e.g. 12000" value="{{ form_data.get('Savings', '') if form_data else '' }}" required>
+          </label>
+
+          <label>Collateral value <span>Value in dataset units</span>
+            <input type="number" name="Collateral_Value" min="0" step="any" placeholder="e.g. 25000" value="{{ form_data.get('Collateral_Value', '') if form_data else '' }}" required>
+          </label>
+
+          <label>Loan amount <span>Amount requested</span>
+            <input type="number" name="Loan_Amount" min="0" step="any" placeholder="e.g. 20000" value="{{ form_data.get('Loan_Amount', '') if form_data else '' }}" required>
+          </label>
+
+          <label>Loan term <span>Repayment duration in months</span>
+            <select name="Loan_Term" required>
+              <option value="" disabled {% if not form_data or not form_data.get('Loan_Term') %}selected{% endif %}>Select loan term</option>
+              {% for term in [12, 24, 36, 48, 60, 72, 84] %}
+                <option value="{{ term }}" {% if form_data and form_data.get('Loan_Term') == term|string %}selected{% endif %}>{{ term }} months</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>Employment status <span>Choose the matching dataset category</span>
+            <select name="Employment_Status" required>
+              <option value="" disabled {% if not form_data or not form_data.get('Employment_Status') %}selected{% endif %}>Select employment status</option>
+              {% for status in ['Salaried', 'Self-employed', 'Contract', 'Unemployed'] %}
+                <option value="{{ status }}" {% if form_data and form_data.get('Employment_Status') == status %}selected{% endif %}>{{ status }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>Marital status <span>Applicant status</span>
+            <select name="Marital_Status" required>
+              <option value="" disabled {% if not form_data or not form_data.get('Marital_Status') %}selected{% endif %}>Select marital status</option>
+              {% for status in ['Single', 'Married'] %}
+                <option value="{{ status }}" {% if form_data and form_data.get('Marital_Status') == status %}selected{% endif %}>{{ status }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>Loan purpose <span>Reason for the loan</span>
+            <select name="Loan_Purpose" required>
+              <option value="" disabled {% if not form_data or not form_data.get('Loan_Purpose') %}selected{% endif %}>Select loan purpose</option>
+              {% for purpose in ['Personal', 'Car', 'Business', 'Education', 'Home'] %}
+                <option value="{{ purpose }}" {% if form_data and form_data.get('Loan_Purpose') == purpose %}selected{% endif %}>{{ purpose }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>Property area <span>Applicant's property location category</span>
+            <select name="Property_Area" required>
+              <option value="" disabled {% if not form_data or not form_data.get('Property_Area') %}selected{% endif %}>Select property area</option>
+              {% for area in ['Urban', 'Semiurban', 'Rural'] %}
+                <option value="{{ area }}" {% if form_data and form_data.get('Property_Area') == area %}selected{% endif %}>{{ area }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>Education level <span>Highest education category</span>
+            <select name="Education_Level" required>
+              <option value="" disabled {% if not form_data or not form_data.get('Education_Level') %}selected{% endif %}>Select education</option>
+              {% for level in ['Graduate', 'Not Graduate'] %}
+                <option value="{{ level }}" {% if form_data and form_data.get('Education_Level') == level %}selected{% endif %}>{{ level }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>Gender <span>As represented in the dataset</span>
+            <select name="Gender" required>
+              <option value="" disabled {% if not form_data or not form_data.get('Gender') %}selected{% endif %}>Select option</option>
+              {% for gender in ['Male', 'Female'] %}
+                <option value="{{ gender }}" {% if form_data and form_data.get('Gender') == gender %}selected{% endif %}>{{ gender }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>Employer category <span>Category of employer</span>
+            <select name="Employer_Category" required>
+              <option value="" disabled {% if not form_data or not form_data.get('Employer_Category') %}selected{% endif %}>Select employer category</option>
+              {% for category in ['Private', 'Government', 'Business', 'MNC', 'Unemployed'] %}
+                <option value="{{ category }}" {% if form_data and form_data.get('Employer_Category') == category %}selected{% endif %}>{{ category }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+
+        <div class="form-footer">
+          <p>Educational demonstration only. Do not enter account numbers, identity numbers, passwords, or other sensitive identifiers.</p>
+          <button type="submit" class="primary-button">Check eligibility <span>→</span></button>
+        </div>
+      </form>
+
+      {% if prediction is not none %}
+        <div class="result-card {% if approved %}approved{% else %}rejected{% endif %}" role="status">
+          <p class="eyebrow">MODEL RESULT</p>
+          <h3>{{ prediction }}</h3>
+          {% if probability is not none %}
+            <p>Model-estimated approval probability: <strong>{{ probability }}%</strong></p>
+          {% endif %}
+          <p>This is an educational model prediction, not a guarantee or real lending decision.</p>
+        </div>
+      {% endif %}
+    </section>
+  </main>
+
+  <footer>
+    <a class="brand" href="#home"><span class="brand-mark">C</span> CreditWise</a>
+    <p>Machine learning project · Educational demonstration</p>
+  </footer>
+</body>
+</html>
